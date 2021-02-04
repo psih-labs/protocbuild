@@ -7,7 +7,7 @@ build:
     # Compile and name the binary as `hello`
     - go build -o ${CI_PROJECT_NAME}
     # Move to gitlab build directory
-    - mv ./hello ${CI_PROJECT_DIR}
+    - mv ./${CI_PROJECT_NAME} ${CI_PROJECT_DIR}
 
   artifacts:
     paths:
