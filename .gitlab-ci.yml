@@ -1,5 +1,5 @@
 stages:
-  - builds
+  - build
 
 build:
   stage: build
