@@ -85,7 +85,7 @@ func main() {
 	defer f.Close()
 	tmprun()
 	setupGit(c, reponames)
-	//cleanup(c)
+	cleanup(c)
 }
 func setupGit(c conf, reponames []string) {
 	log.Println("Setting Up Git")
