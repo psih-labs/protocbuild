@@ -70,8 +70,6 @@ func main() {
 			if err != nil {
 				log.Fatalf("Failed to create dir: %v", err)
 			}
-			dir, err := os.Getwd()
-			dir = dir + workspaceRoot
 			dindWorkspace := os.Getenv("DIND_WORKSPACE")
 
 			if err != nil {
@@ -80,7 +78,6 @@ func main() {
 			cmdstr := "docker run -v " + dindWorkspace + ":/workspace --rm grpckit protoc -I" + "/" + workspaceRoot + c.Root + " --" + l.Name + "_out=" + l.Args + "/" + outDir + " " + "/" + workspaceRoot + c.Root + "/" + target + "/*"
 			tmpwrite(f, cmdstr)
 		}
-		//time.Sleep(10 * time.Millisecond)
 	}
 	defer f.Close()
 	tmprun()
