@@ -1,6 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/sh
+set -e -x
+
 main() {
-  local tmpcmdsfile=tmpcmnds
+  local tmpcmdsfile=workspace/tmpcmnds
   if [ -f $tmpcmdsfile ]; then
     while read cmd; do
     $cmd

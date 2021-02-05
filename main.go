@@ -17,6 +17,8 @@ type defaultLang struct {
 }
 
 var commitMsg = "AutoUpdateGeneratedProto"
+var workspaceRoot = "workspace/"
+var tmpcmnds = workspaceRoot + "tmpcmnds"
 
 type conf struct {
 	Root   string `yaml:"root"`
@@ -34,26 +36,11 @@ type conf struct {
 	DefaultLang []defaultLang `yaml:"default_lang"`
 }
 
-var tmpcmnds = "tmpcmnds"
-
-func (c *conf) getConf() *conf {
-
-	yamlFile, err := ioutil.ReadFile("protocbuild.yaml")
-	if err != nil {
-		log.Printf("yamlFile.Get err   #%v ", err)
-	}
-	err = yaml.Unmarshal(yamlFile, c)
-	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
-	}
-
-	return c
-}
 func main() {
 	var c conf
 	c.getConf()
 
-	file, err := os.Open(c.Root)
+	file, err := os.Open(workspaceRoot + c.Root)
 	if err != nil {
 		log.Fatalf("failed opening directory: %s", err)
 	}
@@ -78,16 +65,19 @@ func main() {
 		for _, l := range langs {
 			targetfolder := "pb-" + l.Name + "-" + target
 			reponames = append(reponames, targetfolder)
-			outDir := c.Output + "/" + targetfolder
+			outDir := workspaceRoot + c.Output + "/" + targetfolder
 			err := runCmd("mkdir -p " + outDir)
 			if err != nil {
 				log.Fatalf("Failed to create dir: %v", err)
 			}
 			dir, err := os.Getwd()
+			dir = dir + workspaceRoot
+			dindWorkspace := os.Getenv("DIND_WORKSPACE")
+
 			if err != nil {
 				log.Fatalf("Failed to get current dir: %v", err)
 			}
-			cmdstr := "docker run -v " + dir + ":/workspace --rm grpckit protoc -I" + c.Root + " --" + l.Name + "_out=" + l.Args + outDir + " " + c.Root + "/" + target + "/*"
+			cmdstr := "docker run -v " + dindWorkspace + ":/workspace --rm grpckit protoc -I" + "/" + workspaceRoot + c.Root + " --" + l.Name + "_out=" + l.Args + "/" + outDir + " " + "/" + workspaceRoot + c.Root + "/" + target + "/*"
 			tmpwrite(f, cmdstr)
 		}
 		//time.Sleep(10 * time.Millisecond)
@@ -95,10 +85,14 @@ func main() {
 	defer f.Close()
 	tmprun()
 	setupGit(c, reponames)
-	cleanup(c)
+	//cleanup(c)
 }
 func setupGit(c conf, reponames []string) {
-	os.RemoveAll(c.Git.Reporoot)
+	log.Println("Setting Up Git")
+	if err := runCmd("./setupgit.sh"); err != nil {
+		log.Fatalf("Failed to run setupgitsh: %v", err)
+	}
+	os.RemoveAll(workspaceRoot + c.Git.Reporoot)
 	branch := c.Git.Branch
 	if err := runCmd("mkdir -p " + c.Git.Reporoot); err != nil {
 		log.Fatalf("Failed to create git folder: %v", err)
@@ -109,7 +103,7 @@ func setupGit(c conf, reponames []string) {
 	for _, r := range reponames {
 		log.Printf("Setting up repo %v", r)
 		gitssh := "git@" + c.Git.Host + ":" + c.Git.Org + "/" + r + ".git "
-		repopath := c.Git.Reporoot + "/" + r
+		repopath := workspaceRoot + c.Git.Reporoot + "/" + r
 		if err := runCmd("git clone --single-branch --branch " + branch + " " + gitssh + repopath); err != nil {
 			newbranch = append(newbranch, true)
 			log.Printf("Remote Repo doesnt exists: %v", err)
@@ -124,26 +118,28 @@ func setupGit(c conf, reponames []string) {
 			newbranch = append(newbranch, false)
 		}
 	}
-	tmpwrite(f, "rsync -a "+c.Output+"/ "+c.Git.Reporoot)
+	tmpwrite(f, "rsync -a "+workspaceRoot+c.Output+"/ "+workspaceRoot+c.Git.Reporoot)
 	for i, r := range reponames {
 		upstream := ""
+		newbr := ""
 		if newbranch[i] == true {
 			upstream = "-u"
+			newbr = "-b"
 		}
-		repopath := c.Git.Reporoot + "/" + r
+		repopath := "/" + workspaceRoot + c.Git.Reporoot + "/" + r
 		tmpwrite(f, "cd "+repopath)
-		tmpwrite(f, "git checkout -b "+branch)
+		tmpwrite(f, "git checkout "+newbr+" "+branch)
 		tmpwrite(f, "git add -A")
-		tmpwrite(f, "git commit -m "+commitMsg)
+		tmpwrite(f, "git commit --allow-empty -m "+commitMsg)
 		tmpwrite(f, "git push "+upstream+" origin "+branch)
-		tmpwrite(f, "cd ../../")
+		//tmpwrite(f, "cd ../../")
 	}
 	tmprun()
 	defer f.Close()
 }
 func cleanup(c conf) {
-	os.RemoveAll(c.Output)
-	os.RemoveAll(c.Git.Reporoot)
+	os.RemoveAll(workspaceRoot + c.Output)
+	os.RemoveAll(workspaceRoot + c.Git.Reporoot)
 	os.Remove(tmpcmnds)
 }
 
@@ -164,6 +160,20 @@ func tmpwrite(f *os.File, cmdstr string) {
 	if _, err := f.Write([]byte(cmdstr + "\n")); err != nil {
 		log.Fatalf("Failed to write to file: %v", err)
 	}
+}
+
+func (c *conf) getConf() *conf {
+
+	yamlFile, err := ioutil.ReadFile(workspaceRoot + "protocbuild.yaml")
+	if err != nil {
+		log.Printf("yamlFile.Get err   #%v ", err)
+	}
+	err = yaml.Unmarshal(yamlFile, c)
+	if err != nil {
+		log.Fatalf("Unmarshal: %v", err)
+	}
+
+	return c
 }
 func runCmd(s string) error {
 	fmt.Println(s)
