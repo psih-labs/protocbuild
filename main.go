@@ -17,7 +17,7 @@ type defaultLang struct {
 }
 
 var commitMsg = "AutoUpdateGeneratedProto"
-var workspaceRoot = "workspace/"
+var workspaceRoot = os.Getenv("WORKSPACE_ROOT")
 var tmpcmnds = workspaceRoot + "tmpcmnds"
 
 type conf struct {
@@ -39,7 +39,7 @@ type conf struct {
 func main() {
 	var c conf
 	c.getConf()
-
+	cleanup(c)
 	file, err := os.Open(workspaceRoot + c.Root)
 	if err != nil {
 		log.Fatalf("failed opening directory: %s", err)
@@ -75,15 +75,15 @@ func main() {
 			if err != nil {
 				log.Fatalf("Failed to get current dir: %v", err)
 			}
-			cmdstr := "docker run -v " + dindWorkspace + ":/workspace --rm grpckit protoc -I" + "/" + workspaceRoot + c.Root + " --" + l.Name + "_out=" + l.Args + "/" + outDir + " " + "/" + workspaceRoot + c.Root + "/" + target + "/*"
+			cmdstr := "docker run -v " + dindWorkspace + ":/workspace --rm grpckit protoc -I" + workspaceRoot + c.Root + " --" + l.Name + "_out=" + l.Args + outDir + " " + workspaceRoot + c.Root + "/" + target + "/*"
 			tmpwrite(f, cmdstr)
 		}
 	}
 	defer f.Close()
 	tmprun()
 	setupGit(c, reponames)
-	cleanup(c)
 }
+
 func setupGit(c conf, reponames []string) {
 	log.Println("Setting Up Git")
 	if err := runCmd("./setupgit.sh"); err != nil {
@@ -123,7 +123,7 @@ func setupGit(c conf, reponames []string) {
 			upstream = "-u"
 			newbr = "-b"
 		}
-		repopath := "/" + workspaceRoot + c.Git.Reporoot + "/" + r
+		repopath := workspaceRoot + c.Git.Reporoot + "/" + r
 		tmpwrite(f, "cd "+repopath)
 		tmpwrite(f, "git checkout "+newbr+" "+branch)
 		tmpwrite(f, "git add -A")
@@ -137,7 +137,7 @@ func setupGit(c conf, reponames []string) {
 func cleanup(c conf) {
 	os.RemoveAll(workspaceRoot + c.Output)
 	os.RemoveAll(workspaceRoot + c.Git.Reporoot)
-	os.Remove(tmpcmnds)
+	os.Remove(workspaceRoot + tmpcmnds)
 }
 
 func tmpcreate() *os.File {
@@ -160,7 +160,6 @@ func tmpwrite(f *os.File, cmdstr string) {
 }
 
 func (c *conf) getConf() *conf {
-
 	yamlFile, err := ioutil.ReadFile(workspaceRoot + "protocbuild.yaml")
 	if err != nil {
 		log.Printf("yamlFile.Get err   #%v ", err)
