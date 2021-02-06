@@ -21,9 +21,10 @@ var workspaceRoot = os.Getenv("WORKSPACE_ROOT")
 var tmpcmnds = workspaceRoot + "tmpcmnds"
 
 type conf struct {
-	Root   string `yaml:"root"`
-	Output string `yaml:"output"`
-	Git    struct {
+	Root              string `yaml:"root"`
+	Output            string `yaml:"output"`
+	ProtocDockerImage string `yaml:"protoc_docker_image"`
+	Git               struct {
 		Org      string `yaml:"org"`
 		Reporoot string `yaml:"reporoot"`
 		Host     string `yaml:"host"`
@@ -75,7 +76,7 @@ func main() {
 			if err != nil {
 				log.Fatalf("Failed to get current dir: %v", err)
 			}
-			cmdstr := "docker run -v " + dindWorkspace + ":/workspace --rm grpckit protoc -I" + workspaceRoot + c.Root + " --" + l.Name + "_out=" + l.Args + outDir + " " + workspaceRoot + c.Root + "/" + target + "/*"
+			cmdstr := "docker run -v " + dindWorkspace + ":/workspace --rm " + c.ProtocDockerImage + " protoc -I" + workspaceRoot + c.Root + " --" + l.Name + "_out=" + l.Args + outDir + " " + workspaceRoot + c.Root + "/" + target + "/*"
 			tmpwrite(f, cmdstr)
 		}
 	}

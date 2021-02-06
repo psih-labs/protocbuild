@@ -1,5 +1,7 @@
 root: myprotos
 output: gen
+#protoc_docker_image: registry.gitlab.com/imerkle/grpckit/grpckit/grpckit
+protoc_docker_image: grpckit
 git:
   org: prototestimerkle
   reporoot: repos
