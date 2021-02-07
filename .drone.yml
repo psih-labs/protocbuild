@@ -1,0 +1,10 @@
+kind: pipeline
+name: default
+steps:
+- name: kaniko
+  image: banzaicloud/drone-kaniko
+  settings:
+    username: asd
+    password: Nigger123
+    repo: foo/bar
+    registry: demo.goharbor.io
