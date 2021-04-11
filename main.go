@@ -79,6 +79,7 @@ func main() {
 		c.Git.Branch = defaultBranch
 	}
 	projectName := GetEnv("GIT_REPO", "")
+	fmt.Println("Opening Dir ", workspaceRoot+c.Root)
 	file, err := os.Open(workspaceRoot + c.Root)
 	if err != nil {
 		log.Fatalf("failed opening directory: %s", err)
