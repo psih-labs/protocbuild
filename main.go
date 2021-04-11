@@ -20,7 +20,9 @@ type defaultLang struct {
 }
 
 var commitMsg = "AutoUpdateGeneratedProto"
-var workspaceRoot = GetEnv("WORKSPACE_ROOT", ".")
+var workspaceRoot = GetEnv("WORKSPACE_ROOT", "/workspace/")
+var dindWorkspace = GetEnv("DIND_WORKSPACE", ".")
+
 var tmpcmnds = workspaceRoot + "tmpcmnds"
 var (
 	defaultProtocDockerImage = "registry.gitlab.com/imerkle/grpckit:latest"
@@ -49,6 +51,9 @@ type conf struct {
 }
 
 func main() {
+	fmt.Println("Workspace Root ", workspaceRoot)
+	fmt.Println("DIND Workspace ", dindWorkspace)
+
 	var c conf
 	c.getConf()
 	cleanup(c)
@@ -104,7 +109,6 @@ func main() {
 			if err != nil {
 				log.Fatalf("Failed to create dir: %v", err)
 			}
-			dindWorkspace := GetEnv("DIND_WORKSPACE", ".")
 
 			if err != nil {
 				log.Fatalf("Failed to get current dir: %v", err)
