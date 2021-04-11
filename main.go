@@ -6,6 +6,9 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -17,8 +20,16 @@ type defaultLang struct {
 }
 
 var commitMsg = "AutoUpdateGeneratedProto"
-var workspaceRoot = os.Getenv("WORKSPACE_ROOT")
+var workspaceRoot = GetEnv("WORKSPACE_ROOT", ".")
 var tmpcmnds = workspaceRoot + "tmpcmnds"
+var (
+	defaultProtocDockerImage = "registry.gitlab.com/imerkle/grpckit:latest"
+	defaultRepoRoot          = "repos"
+	defaultBranch            = "master"
+	defaultOutput            = "gen"
+	defaultRoot              = "pb"
+	defaultGitHost           = "gitlab.com"
+)
 
 type conf struct {
 	Root              string `yaml:"root"`
@@ -41,6 +52,28 @@ func main() {
 	var c conf
 	c.getConf()
 	cleanup(c)
+	if len(c.Root) == 0 {
+		c.Root = defaultRoot
+	}
+	if len(c.Output) == 0 {
+		c.Output = defaultOutput
+	}
+	if len(c.ProtocDockerImage) == 0 {
+		c.ProtocDockerImage = defaultProtocDockerImage
+	}
+	if len(c.Git.Org) == 0 {
+		c.Git.Org = GetEnv("GIT_ORG", "")
+	}
+	if len(c.Git.Host) == 0 {
+		c.Git.Host = GetEnv("GIT_HOST", defaultGitHost)
+	}
+	if len(c.Git.Reporoot) == 0 {
+		c.Git.Reporoot = defaultRepoRoot
+	}
+	if len(c.Git.Branch) == 0 {
+		c.Git.Branch = defaultBranch
+	}
+	projectName := GetEnv("GIT_REPO", "")
 	file, err := os.Open(workspaceRoot + c.Root)
 	if err != nil {
 		log.Fatalf("failed opening directory: %s", err)
@@ -64,14 +97,14 @@ func main() {
 			langs = c.DefaultLang
 		}
 		for _, l := range langs {
-			targetfolder := "pb-" + l.Name + "-" + target
+			targetfolder := projectName + "-" + "pb-" + l.Name + "-" + target
 			reponames = append(reponames, targetfolder)
 			outDir := workspaceRoot + c.Output + "/" + targetfolder
 			err := runCmd("mkdir -p " + outDir)
 			if err != nil {
 				log.Fatalf("Failed to create dir: %v", err)
 			}
-			dindWorkspace := os.Getenv("DIND_WORKSPACE")
+			dindWorkspace := GetEnv("DIND_WORKSPACE", ".")
 
 			if err != nil {
 				log.Fatalf("Failed to get current dir: %v", err)
@@ -189,4 +222,15 @@ func findlang(c conf, lang string) defaultLang {
 	}
 	log.Fatalf("lang %v not found in yaml default_lang", lang)
 	return defaultLang{}
+}
+func GetEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
+func RootDir() string {
+	_, b, _, _ := runtime.Caller(0)
+	d := path.Join(path.Dir(b))
+	return filepath.Dir(d)
 }
