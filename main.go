@@ -56,7 +56,7 @@ func main() {
 
 	var c conf
 	c.getConf()
-	cleanup(c)
+	fmt.Println(c)
 	if len(c.Root) == 0 {
 		c.Root = defaultRoot
 	}
@@ -78,6 +78,7 @@ func main() {
 	if len(c.Git.Branch) == 0 {
 		c.Git.Branch = defaultBranch
 	}
+	cleanup(c)
 	projectName := GetEnv("GIT_REPO", "")
 	fmt.Println("Opening Dir ", workspaceRoot+c.Root)
 	file, err := os.Open(workspaceRoot + c.Root)
