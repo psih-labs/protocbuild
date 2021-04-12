@@ -1,0 +1,16 @@
+name: Docker build
+on: push
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Kaniko build
+        uses: aevea/action-kaniko@master
+        with:
+          registry: ghcr.io
+          password: ${{ secrets.CR_PAT }}
+          image: ${{ github.repository }}
+          tag: latest
+          cache: true
+          cache_registry: cache
