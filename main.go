@@ -25,7 +25,7 @@ var dindWorkspace = GetEnv("DIND_WORKSPACE", ".")
 
 var tmpcmnds = workspaceRoot + "tmpcmnds"
 var (
-	defaultProtocDockerImage = "registry.gitlab.com/imerkle/grpckit:latest"
+	defaultProtocDockerImage = "ghcr.io/psih-labs/grpckit:latest"
 	defaultRepoRoot          = "repos"
 	defaultBranch            = "master"
 	defaultOutput            = "gen"
@@ -104,7 +104,7 @@ func main() {
 			langs = c.DefaultLang
 		}
 		for _, l := range langs {
-			targetfolder := projectName + "-" + "pb-" + l.Name + "-" + target
+			targetfolder := defaultRoot + "-" + projectName + "-" + l.Name + "-" + target
 			reponames = append(reponames, targetfolder)
 			outDir := workspaceRoot + c.Output + "/" + targetfolder
 			err := runCmd("mkdir -p " + outDir)
