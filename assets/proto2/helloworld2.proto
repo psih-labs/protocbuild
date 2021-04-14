@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package helloworld2;
+option go_package = "github.com/man/helloworld2";
+
+// The greeting service definition.
+service Greeter {
+  // Sends a greeting
+  rpc SayHello(HelloRequest) returns(stream HelloReply) {}
+}
+
+// The request message containing the user's name.
+message HelloRequest { repeated uint32 script_ids = 1; }
+
+// The response message containing the greetings
+message HelloReply {
+  Market market = 1;
+  repeated double script_value = 2;
+}
+
+message Market {
+  double open = 1;
+  double high = 2;
+  double low = 3;
+  double close = 4;
+  double vol = 5;
+}

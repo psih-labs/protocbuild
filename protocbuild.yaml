@@ -1,12 +1,12 @@
-root: myprotos
+root: assets
 output: gen
-#protoc_docker_image: registry.gitlab.com/imerkle/grpckit/grpckit/grpckit
-protoc_docker_image: grpckit
+protoc_docker_image: registry.gitlab.com/imerkle/grpckit
 git:
-  org: prototestimerkle
+  org: psih-labs
   reporoot: repos
-  host: gitlab.com
+  host: github.com
   branch: master
+  token: git token
 sources:
   - name: proto
     languages:

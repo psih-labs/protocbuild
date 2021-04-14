@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,7 +11,17 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
+	"github.com/google/go-github/v34/github"
+	"github.com/zloylos/grsync"
+	"golang.org/x/oauth2"
+
+	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	plumbing "github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"gopkg.in/yaml.v2"
 )
 
@@ -20,9 +31,8 @@ type defaultLang struct {
 }
 
 var commitMsg = "AutoUpdateGeneratedProto"
-var workspaceRoot = GetEnv("WORKSPACE_ROOT", "/workspace/")
-var dindWorkspace = GetEnv("DIND_WORKSPACE", ".")
-
+var workspaceRoot = GetEnv("WORKSPACE_ROOT", "./")
+var dindWorkspace = ""
 var tmpcmnds = workspaceRoot + "tmpcmnds"
 var (
 	defaultProtocDockerImage = "ghcr.io/psih-labs/grpckit:latest"
@@ -31,6 +41,8 @@ var (
 	defaultOutput            = "gen"
 	defaultRoot              = "pb"
 	defaultGitHost           = "gitlab.com"
+	defaultGitUserName       = "protobufbot"
+	defaultGitEmail          = "protobufbot@github.com"
 )
 
 type conf struct {
@@ -42,6 +54,7 @@ type conf struct {
 		Reporoot string `yaml:"reporoot"`
 		Host     string `yaml:"host"`
 		Branch   string `yaml:"branch"`
+		Token    string `yaml:"token"`
 	} `yaml:"git"`
 	Sources []struct {
 		Name      string   `yaml:"name"`
@@ -51,12 +64,18 @@ type conf struct {
 }
 
 func main() {
+
+	pwd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	dindWorkspace = GetEnv("DIND_WORKSPACE", pwd)
+
 	fmt.Println("Workspace Root ", workspaceRoot)
 	fmt.Println("DIND Workspace ", dindWorkspace)
 
 	var c conf
 	c.getConf()
-	fmt.Println(c)
 	if len(c.Root) == 0 {
 		c.Root = defaultRoot
 	}
@@ -79,7 +98,7 @@ func main() {
 		c.Git.Branch = defaultBranch
 	}
 	cleanup(c)
-	projectName := GetEnv("GIT_REPO", "")
+	projectName := GetEnv("GIT_REPO", "my-project-name")
 	fmt.Println("Opening Dir ", workspaceRoot+c.Root)
 	file, err := os.Open(workspaceRoot + c.Root)
 	if err != nil {
@@ -89,6 +108,8 @@ func main() {
 	f := tmpcreate()
 
 	list, _ := file.Readdirnames(0) // 0 to read all files and folders
+	fmt.Println(list)
+
 	var reponames []string
 	for _, name := range list {
 		target := name
@@ -107,13 +128,11 @@ func main() {
 			targetfolder := defaultRoot + "-" + projectName + "-" + l.Name + "-" + target
 			reponames = append(reponames, targetfolder)
 			outDir := workspaceRoot + c.Output + "/" + targetfolder
-			err := runCmd("mkdir -p " + outDir)
+			fmt.Println("Creating dir ", outDir)
+			err := os.MkdirAll(outDir, 0755)
+			//err := runCmd("mkdir -p " + outDir)
 			if err != nil {
 				log.Fatalf("Failed to create dir: %v", err)
-			}
-
-			if err != nil {
-				log.Fatalf("Failed to get current dir: %v", err)
 			}
 			cmdstr := "docker run -v " + dindWorkspace + ":/workspace --rm " + c.ProtocDockerImage + " protoc -I" + workspaceRoot + c.Root + " --" + l.Name + "_out=" + l.Args + outDir + " " + workspaceRoot + c.Root + "/" + target + "/*"
 			tmpwrite(f, cmdstr)
@@ -126,53 +145,105 @@ func main() {
 
 func setupGit(c conf, reponames []string) {
 	log.Println("Setting Up Git")
-	if err := runCmd("./setupgit.sh"); err != nil {
-		log.Fatalf("Failed to run setupgitsh: %v", err)
-	}
+	gitToken := GetEnv("GIT_TOKEN", c.Git.Token)
+	/*
+		if err := runCmd("./setupgit.sh"); err != nil {
+			log.Fatalf("Failed to run setupgitsh: %v", err)
+		}*/
 	os.RemoveAll(workspaceRoot + c.Git.Reporoot)
 	branch := c.Git.Branch
-	if err := runCmd("mkdir -p " + c.Git.Reporoot); err != nil {
+	if err := os.MkdirAll(c.Git.Reporoot, 0755); err != nil {
 		log.Fatalf("Failed to create git folder: %v", err)
 	}
-	f := tmpcreate()
+	author := &object.Signature{
+		Name:  GetEnv("GIT_USERNAME", defaultGitUserName),
+		Email: GetEnv("GIT_EMAIL", defaultGitEmail),
+		When:  time.Now(),
+	}
+	var gh *github.Client
+	if c.Git.Host == "github.com" {
 
-	var newbranch []bool
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: gitToken},
+		)
+		tc := oauth2.NewClient(context.Background(), ts)
+
+		gh = github.NewClient(tc)
+	}
+
 	for _, r := range reponames {
+		newbranch := false
 		log.Printf("Setting up repo %v", r)
 		gitssh := "git@" + c.Git.Host + ":" + c.Git.Org + "/" + r + ".git "
 		repopath := workspaceRoot + c.Git.Reporoot + "/" + r
-		if err := runCmd("git clone --single-branch --branch " + branch + " " + gitssh + repopath); err != nil {
-			newbranch = append(newbranch, true)
+
+		gitRepo, err := git.PlainClone(repopath, false, &git.CloneOptions{
+			// The intended use of a GitHub personal access token is in replace of your password
+			// because access tokens can easily be revoked.
+			// https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
+			Auth: &http.BasicAuth{
+				Username: "abc123", // yes, this can be anything except an empty string
+				Password: gitToken,
+			},
+			URL:      gitssh,
+			Progress: os.Stdout,
+		})
+		if err != nil {
+			newbranch = true
 			log.Printf("Remote Repo doesnt exists: %v", err)
-			if err := runCmd("mkdir -p " + repopath); err != nil {
+			if err := os.MkdirAll(repopath, 0755); err != nil {
 				log.Fatalf("Failed to create git proto repo folder: %v", err)
 			}
-			tmpwrite(f, "cd "+repopath)
-			tmpwrite(f, "git init")
-			tmpwrite(f, "git remote add origin "+gitssh)
-			tmpwrite(f, "cd ../../")
-		} else {
-			newbranch = append(newbranch, false)
+			gitRepo, err = git.PlainInit(repopath, false)
+			gitRepo.CreateRemote(&config.RemoteConfig{
+				Name: "origin",
+				URLs: []string{gitssh},
+			})
+		}
+
+		task := grsync.NewTask(
+			workspaceRoot+c.Output+"/"+r,
+			workspaceRoot+c.Git.Reporoot,
+			grsync.RsyncOptions{},
+		)
+		if err := task.Run(); err != nil {
+			panic(err)
+		}
+		w, err := gitRepo.Worktree()
+		if err != nil {
+			panic(err)
+		}
+		w.Checkout(&git.CheckoutOptions{
+			Branch: plumbing.NewBranchReferenceName(branch),
+			Create: newbranch,
+		})
+		commit, err := w.Commit(commitMsg, &git.CommitOptions{
+			Author: author,
+		})
+		_, err = gitRepo.CommitObject(commit)
+		if err != nil {
+			panic(err)
+		}
+		err = gitRepo.Push(&git.PushOptions{})
+		if err != nil {
+			if c.Git.Host == "github.com" {
+				repo := &github.Repository{
+					Name:    &r,
+					Private: github.Bool(true),
+				}
+				_, _, err = gh.Repositories.Create(context.Background(), c.Git.Org, repo)
+				if err != nil {
+					panic(err)
+				}
+				err = gitRepo.Push(&git.PushOptions{})
+				if err != nil {
+					panic(err)
+				}
+			} else {
+				panic(err)
+			}
 		}
 	}
-	tmpwrite(f, "rsync -a "+workspaceRoot+c.Output+"/ "+workspaceRoot+c.Git.Reporoot)
-	for i, r := range reponames {
-		upstream := ""
-		newbr := ""
-		if newbranch[i] == true {
-			upstream = "-u"
-			newbr = "-b"
-		}
-		repopath := workspaceRoot + c.Git.Reporoot + "/" + r
-		tmpwrite(f, "cd "+repopath)
-		tmpwrite(f, "git checkout "+newbr+" "+branch)
-		tmpwrite(f, "git add -A")
-		tmpwrite(f, "git commit --allow-empty -m "+commitMsg)
-		tmpwrite(f, "git push "+upstream+" origin "+branch)
-		//tmpwrite(f, "cd ../../")
-	}
-	tmprun()
-	defer f.Close()
 }
 func cleanup(c conf) {
 	os.RemoveAll(workspaceRoot + c.Output)
