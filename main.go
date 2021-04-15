@@ -174,7 +174,7 @@ func setupGit(c conf, reponames []string) {
 	for _, r := range reponames {
 		newbranch := false
 		log.Printf("Setting up repo %v", r)
-		gitssh := "git@" + c.Git.Host + ":" + c.Git.Org + "/" + r + ".git "
+		gitssh := "https://" + c.Git.Host + "/" + c.Git.Org + "/" + r + ".git "
 		repopath := workspaceRoot + c.Git.Reporoot + "/" + r
 
 		gitRepo, err := git.PlainClone(repopath, false, &git.CloneOptions{
