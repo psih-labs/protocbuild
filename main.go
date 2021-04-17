@@ -231,11 +231,13 @@ func setupGit(c conf, reponames []string) {
 					Name:    &r,
 					Private: github.Bool(true),
 				}
-				_, _, err = gh.Repositories.Create(context.Background(), c.Git.Org, repo)
-				if err != nil {
-					panic(err)
-				}
-				err = gitRepo.Push(&git.PushOptions{})
+				gh.Repositories.Create(context.Background(), c.Git.Org, repo)
+				err = gitRepo.Push(&git.PushOptions{
+					Auth: &http.BasicAuth{
+						Username: "abc123", // yes, this can be anything except an empty string
+						Password: gitToken,
+					},
+				})
 				if err != nil {
 					panic(err)
 				}
