@@ -2,7 +2,7 @@
 set -e -x
 
 main() {
-  local tmpcmdsfile=workspace/tmpcmnds
+  local tmpcmdsfile=./tmpcmnds
   if [ -f $tmpcmdsfile ]; then
     while read cmd; do
     $cmd

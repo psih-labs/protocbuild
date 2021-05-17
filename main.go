@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v34/github"
-	"github.com/zloylos/grsync"
+	"github.com/otiai10/copy"
 	"golang.org/x/oauth2"
 
 	git "github.com/go-git/go-git/v5"
@@ -200,15 +200,7 @@ func setupGit(c conf, reponames []string) {
 				URLs: []string{gitssh},
 			})
 		}
-
-		task := grsync.NewTask(
-			workspaceRoot+c.Output+"/"+r,
-			workspaceRoot+c.Git.Reporoot,
-			grsync.RsyncOptions{},
-		)
-		if err := task.Run(); err != nil {
-			panic(err)
-		}
+		err = copy.Copy(workspaceRoot+c.Output+"/"+r, c.Git.Reporoot+"/"+r)
 		w, err := gitRepo.Worktree()
 		if err != nil {
 			panic(err)
