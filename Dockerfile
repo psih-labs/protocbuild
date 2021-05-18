@@ -21,8 +21,6 @@ COPY --from=namely/protoc-all /opt/include/google /usr/local/include/google
 
 RUN apk add --no-cache ca-certificates git openssh
 COPY --from=builder /go/src/protocbuild/appbinary /appbinary
-COPY --from=builder /go/src/protocbuild/run.sh /run.sh
-COPY --from=builder /go/src/protocbuild/setupgit.sh /setupgit.sh
 
 VOLUME /workspace
 ENTRYPOINT ["/appbinary"]
