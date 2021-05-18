@@ -130,7 +130,6 @@ func main() {
 			outDir := workspaceRoot + c.Output + "/" + targetfolder
 			fmt.Println("Creating dir ", outDir)
 			err := os.MkdirAll(outDir, 0755)
-			//err := runCmd("mkdir -p " + outDir)
 			if err != nil {
 				log.Fatalf("Failed to create dir: %v", err)
 			}
@@ -201,6 +200,11 @@ func setupGit(c conf, reponames []string) {
 			})
 		}
 		err = copy.Copy(workspaceRoot+c.Output+"/"+r, c.Git.Reporoot+"/"+r)
+		fmt.Println(workspaceRoot + c.Output + "/" + r)
+		fmt.Println(c.Git.Reporoot + "/" + r)
+		if err != nil {
+			panic(err)
+		}
 		w, err := gitRepo.Worktree()
 		if err != nil {
 			panic(err)
