@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package helloworld;
+option go_package = "github.com/man/helloworld";
+
+message Markets {
+  double open = 1;
+  double high = 2;
+  double low = 3;
+  double close = 4;
+  double vol = 5;
+}

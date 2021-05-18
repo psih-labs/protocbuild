@@ -32,8 +32,6 @@ type defaultLang struct {
 
 var commitMsg = "AutoUpdateGeneratedProto"
 var workspaceRoot = GetEnv("WORKSPACE_ROOT", "./")
-var dindWorkspace = ""
-var tmpcmnds = workspaceRoot + "tmpcmnds"
 var (
 	defaultProtocDockerImage = "ghcr.io/psih-labs/grpckit:latest"
 	defaultRepoRoot          = "repos"
@@ -64,16 +62,7 @@ type conf struct {
 }
 
 func main() {
-
-	pwd, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	dindWorkspace = GetEnv("DIND_WORKSPACE", pwd)
-
 	fmt.Println("Workspace Root ", workspaceRoot)
-	fmt.Println("DIND Workspace ", dindWorkspace)
-
 	var c conf
 	c.getConf()
 	if len(c.Root) == 0 {
@@ -105,7 +94,6 @@ func main() {
 		log.Fatalf("failed opening directory: %s", err)
 	}
 	defer file.Close()
-	f := tmpcreate()
 
 	list, _ := file.Readdirnames(0) // 0 to read all files and folders
 	fmt.Println(list)
@@ -133,12 +121,24 @@ func main() {
 			if err != nil {
 				log.Fatalf("Failed to create dir: %v", err)
 			}
-			cmdstr := "docker run -v " + dindWorkspace + ":/workspace --rm " + c.ProtocDockerImage + " protoc -I" + workspaceRoot + c.Root + " --" + l.Name + "_out=" + l.Args + outDir + " " + workspaceRoot + c.Root + "/" + target + "/*"
-			tmpwrite(f, cmdstr)
+			files, err := ioutil.ReadDir(workspaceRoot + c.Root + "/" + target)
+			if err != nil {
+				log.Fatal(err)
+			}
+			var protocFiles []string
+			for _, f := range files {
+				protocFiles = append(protocFiles, workspaceRoot+c.Root+"/"+target+"/"+f.Name())
+			}
+
+			var command []string
+			command = append(command, "-I"+workspaceRoot+c.Root)
+			command = append(command, "--"+l.Name+"_out="+l.Args+outDir)
+			command = append(command, protocFiles...)
+			cmd := exec.Command("protoc", command...)
+			xx, err := cmd.CombinedOutput()
+			fmt.Println(string(xx))
 		}
 	}
-	defer f.Close()
-	tmprun()
 	setupGit(c, reponames)
 }
 
@@ -264,26 +264,6 @@ func setupGit(c conf, reponames []string) {
 func cleanup(c conf) {
 	os.RemoveAll(workspaceRoot + c.Output)
 	os.RemoveAll(workspaceRoot + c.Git.Reporoot)
-	os.Remove(workspaceRoot + tmpcmnds)
-}
-
-func tmpcreate() *os.File {
-	os.Remove(tmpcmnds)
-	f, err := os.OpenFile(tmpcmnds, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatalf("failed create new dir: %v", err)
-	}
-	return f
-}
-func tmprun() {
-	if err := runCmd("./run.sh"); err != nil {
-		log.Fatalf("Failed to run sh: %v", err)
-	}
-}
-func tmpwrite(f *os.File, cmdstr string) {
-	if _, err := f.Write([]byte(cmdstr + "\n")); err != nil {
-		log.Fatalf("Failed to write to file: %v", err)
-	}
 }
 
 func (c *conf) getConf() *conf {

@@ -10,17 +10,19 @@ COPY . ./
 RUN go build -o appbinary
 
 FROM alpine as release
-RUN apk add --no-cache ca-certificates git openssh docker-cli rsync
+
+COPY --from=thethingsindustries/protoc /usr/bin/ /usr/local/bin/
+COPY --from=thethingsindustries/protoc /usr/include/ /usr/include/
+COPY --from=namely/protoc-all /usr/local/bin/ /usr/local/bin/
+COPY --from=namely/protoc-all /usr/local/include/ /usr/local/include/
+COPY --from=namely/protoc-all /usr/local/lib/ /usr/local/lib/
+COPY --from=namely/protoc-all /usr/local/share/ /usr/local/share/
+COPY --from=namely/protoc-all /opt/include/google /usr/local/include/google
+
+RUN apk add --no-cache ca-certificates git openssh
 COPY --from=builder /go/src/protocbuild/appbinary /appbinary
 COPY --from=builder /go/src/protocbuild/run.sh /run.sh
 COPY --from=builder /go/src/protocbuild/setupgit.sh /setupgit.sh
-
-ENV SSH_KEY=""
-ENV COMMIT_USER=""
-ENV COMMIT_EMAIL=""
-
-RUN chmod +x run.sh
-RUN chmod +x setupgit.sh
 
 VOLUME /workspace
 ENTRYPOINT ["/appbinary"]
