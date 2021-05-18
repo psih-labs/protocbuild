@@ -12,11 +12,11 @@
 *.out
 
 # Dependency directories (remove the comment below to include it)
- vendor/
+vendor/
 
- gen/
- repos/
- myprotos
- tmpcmnds
- protocbuild.yaml
+gen/
+repos/
+myprotos
+tmpcmnds
+protocbuild.yaml
 

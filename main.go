@@ -171,7 +171,7 @@ func setupGit(c conf, reponames []string) {
 	}
 
 	for _, r := range reponames {
-		newbranch := false
+		newBranch := false
 		log.Printf("Setting up repo %v", r)
 		gitssh := "https://" + c.Git.Host + "/" + c.Git.Org + "/" + r + ".git "
 		repopath := workspaceRoot + c.Git.Reporoot + "/" + r
@@ -188,7 +188,7 @@ func setupGit(c conf, reponames []string) {
 			Progress: os.Stdout,
 		})
 		if err != nil {
-			newbranch = true
+			newBranch = true
 			log.Printf("Remote Repo doesnt exists: %v", err)
 			if err := os.MkdirAll(repopath, 0755); err != nil {
 				log.Fatalf("Failed to create git proto repo folder: %v", err)
@@ -199,28 +199,44 @@ func setupGit(c conf, reponames []string) {
 				URLs: []string{gitssh},
 			})
 		}
-		err = copy.Copy(workspaceRoot+c.Output+"/"+r, c.Git.Reporoot+"/"+r)
-		fmt.Println(workspaceRoot + c.Output + "/" + r)
-		fmt.Println(c.Git.Reporoot + "/" + r)
-		if err != nil {
-			panic(err)
-		}
+
 		w, err := gitRepo.Worktree()
+
 		if err != nil {
 			panic(err)
 		}
+
 		w.Checkout(&git.CheckoutOptions{
 			Branch: plumbing.NewBranchReferenceName(branch),
-			Create: newbranch,
+			Create: newBranch,
 		})
+
+		err = copy.Copy(workspaceRoot+c.Output+"/"+r, c.Git.Reporoot+"/"+r)
+
+		if err != nil {
+			panic(err)
+		}
+
+		err = w.AddWithOptions(&git.AddOptions{
+			All: true,
+		})
+		if err != nil {
+			panic(err)
+		}
 		commit, err := w.Commit(commitMsg, &git.CommitOptions{
+			All:    true,
 			Author: author,
 		})
 		_, err = gitRepo.CommitObject(commit)
 		if err != nil {
 			panic(err)
 		}
-		err = gitRepo.Push(&git.PushOptions{})
+		err = gitRepo.Push(&git.PushOptions{
+			Auth: &http.BasicAuth{
+				Username: "abc123", // yes, this can be anything except an empty string
+				Password: gitToken,
+			},
+		})
 		if err != nil {
 			if c.Git.Host == "github.com" {
 				repo := &github.Repository{
@@ -240,6 +256,8 @@ func setupGit(c conf, reponames []string) {
 			} else {
 				panic(err)
 			}
+		} else {
+			fmt.Println("Pushed repo", gitssh)
 		}
 	}
 }
