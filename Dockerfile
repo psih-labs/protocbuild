@@ -7,7 +7,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . ./
-RUN go build -o appbinary
+RUN CGO_ENABLED=0 go build -o appbinary
 
 FROM debian:buster-slim as release
 
