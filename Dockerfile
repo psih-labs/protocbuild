@@ -9,7 +9,7 @@ RUN go mod download
 COPY . ./
 RUN go build -o appbinary
 
-FROM alpine as release
+FROM debian:buster-slim as release
 
 COPY --from=thethingsindustries/protoc /usr/bin/ /usr/local/bin/
 COPY --from=thethingsindustries/protoc /usr/include/ /usr/include/
@@ -19,7 +19,7 @@ COPY --from=namely/protoc-all /usr/local/lib/ /usr/local/lib/
 COPY --from=namely/protoc-all /usr/local/share/ /usr/local/share/
 COPY --from=namely/protoc-all /opt/include/google /usr/local/include/google
 
-RUN apk add --no-cache ca-certificates git openssh
+RUN apt-get update && apt-get install git -y --no-install-recommends 
 COPY --from=builder /go/src/protocbuild/appbinary /appbinary
 
 VOLUME /workspace
