@@ -23,4 +23,4 @@ RUN apt-get update && apt-get install git -y --no-install-recommends
 COPY --from=builder /go/src/protocbuild/appbinary /appbinary
 
 VOLUME /workspace
-ENTRYPOINT ["/appbinary"]
+ENTRYPOINT ["appbinary"]
