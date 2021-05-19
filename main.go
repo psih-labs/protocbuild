@@ -33,21 +33,19 @@ type defaultLang struct {
 var commitMsg = "AutoUpdateGeneratedProto"
 var workspaceRoot = GetEnv("WORKSPACE_ROOT", "./")
 var (
-	defaultProtocDockerImage = "ghcr.io/psih-labs/grpckit:latest"
-	defaultRepoRoot          = "repos"
-	defaultBranch            = "master"
-	defaultOutput            = "gen"
-	defaultRoot              = "pb"
-	defaultGitHost           = "gitlab.com"
-	defaultGitUserName       = "protobufbot"
-	defaultGitEmail          = "protobufbot@github.com"
+	defaultRepoRoot    = "repos"
+	defaultBranch      = "master"
+	defaultOutput      = "gen"
+	defaultRoot        = "pb"
+	defaultGitHost     = "github.com"
+	defaultGitUserName = "protobufbot"
+	defaultGitEmail    = "protobufbot@github.com"
 )
 
 type conf struct {
-	Root              string `yaml:"root"`
-	Output            string `yaml:"output"`
-	ProtocDockerImage string `yaml:"protoc_docker_image"`
-	Git               struct {
+	Root   string `yaml:"root"`
+	Output string `yaml:"output"`
+	Git    struct {
 		Org      string `yaml:"org"`
 		Reporoot string `yaml:"reporoot"`
 		Host     string `yaml:"host"`
@@ -71,9 +69,7 @@ func main() {
 	if len(c.Output) == 0 {
 		c.Output = defaultOutput
 	}
-	if len(c.ProtocDockerImage) == 0 {
-		c.ProtocDockerImage = defaultProtocDockerImage
-	}
+
 	if len(c.Git.Org) == 0 {
 		c.Git.Org = GetEnv("GIT_ORG", "")
 	}

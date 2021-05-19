@@ -1,6 +1,5 @@
 root: assets
 output: gen
-protoc_docker_image: registry.gitlab.com/imerkle/grpckit
 git:
   org: psih-labs
   reporoot: repos
