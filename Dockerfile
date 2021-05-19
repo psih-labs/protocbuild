@@ -20,7 +20,7 @@ COPY --from=namely/protoc-all /usr/local/share/ /usr/local/share/
 COPY --from=namely/protoc-all /opt/include/google /usr/local/include/google
 
 RUN apt-get update && apt-get install git -y --no-install-recommends 
-COPY --from=builder /go/src/protocbuild/appbinary /appbinary
+COPY --from=builder /go/src/protocbuild/appbinary /usr/local/bin/appbinary
 
 VOLUME /workspace
 ENTRYPOINT ["appbinary"]
