@@ -203,7 +203,7 @@ func setupGit(c conf, reponames []string) {
 			Create: newBranch,
 		})
 
-		err = copy.Copy(workspaceRoot+c.Output+"/"+r, c.Git.Reporoot+"/"+r)
+		err = copy.Copy(workspaceRoot+c.Output+"/"+r, workspaceRoot+c.Git.Reporoot+"/"+r)
 
 		if err != nil {
 			panic(err)
