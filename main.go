@@ -92,7 +92,6 @@ func main() {
 	defer file.Close()
 
 	list, _ := file.Readdirnames(0) // 0 to read all files and folders
-	fmt.Println(list)
 
 	var reponames []string
 	for _, name := range list {
@@ -141,10 +140,7 @@ func main() {
 func setupGit(c conf, reponames []string) {
 	log.Println("Setting Up Git")
 	gitToken := GetEnv("GIT_TOKEN", c.Git.Token)
-	/*
-		if err := runCmd("./setupgit.sh"); err != nil {
-			log.Fatalf("Failed to run setupgitsh: %v", err)
-		}*/
+
 	os.RemoveAll(workspaceRoot + c.Git.Reporoot)
 	branch := c.Git.Branch
 	if err := os.MkdirAll(c.Git.Reporoot, 0755); err != nil {
