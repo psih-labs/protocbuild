@@ -219,6 +219,9 @@ func setupGit(c conf, reponames []string) {
 			All:    true,
 			Author: author,
 		})
+		if err != nil {
+			panic(err)
+		}
 		_, err = gitRepo.CommitObject(commit)
 		if err != nil {
 			panic(err)
