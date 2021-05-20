@@ -22,5 +22,9 @@ COPY --from=namely/protoc-all /opt/include/google /usr/local/include/google
 RUN apt-get update && apt-get install git -y --no-install-recommends 
 COPY --from=builder /go/src/protocbuild/appbinary /usr/local/bin/appbinary
 
+ENV SSH_KEY=""
+ENV COMMIT_USER=""
+ENV COMMIT_EMAIL=""
+
 VOLUME /workspace
 ENTRYPOINT ["appbinary"]
