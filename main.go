@@ -130,8 +130,10 @@ func main() {
 			command = append(command, "--"+l.Name+"_out="+l.Args+outDir)
 			command = append(command, protocFiles...)
 			cmd := exec.Command("protoc", command...)
-			xx, err := cmd.CombinedOutput()
-			fmt.Println(string(xx))
+			outBytes, err := cmd.CombinedOutput()
+			if err != nil {
+				panic(string(outBytes))
+			}
 		}
 	}
 	setupGit(c, reponames)
