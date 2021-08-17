@@ -9,6 +9,8 @@ RUN go mod download
 COPY . ./
 RUN CGO_ENABLED=0 go build -o appbinary
 
+RUN go get github.com/infobloxopen/protoc-gen-gorm
+
 FROM debian:buster-slim as release
 
 COPY --from=thethingsindustries/protoc /usr/bin/ /usr/local/bin/
@@ -22,6 +24,7 @@ COPY --from=namely/protoc-all /opt/include/google /usr/local/include/google
 RUN apt-get update && apt-get install ca-certificates -y --no-install-recommends 
 COPY --from=builder /go/src/protocbuild/appbinary /usr/local/bin/appbinary
 COPY --from=builder /go/src/protocbuild/protos/ /usr/local/include/
+COPY --from=builder /go/bin/ /usr/local/bin/
 
 VOLUME /workspace
 ENTRYPOINT ["appbinary"]
