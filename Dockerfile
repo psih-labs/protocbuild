@@ -21,7 +21,7 @@ COPY --from=namely/protoc-all /opt/include/google /usr/local/include/google
 
 RUN apt-get update && apt-get install ca-certificates -y --no-install-recommends 
 COPY --from=builder /go/src/protocbuild/appbinary /usr/local/bin/appbinary
-COPY --from=builder /protos/ /usr/local/include/
+COPY --from=builder /go/src/protocbuild/protos/ /usr/local/include/
 
 VOLUME /workspace
 ENTRYPOINT ["appbinary"]
