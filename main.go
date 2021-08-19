@@ -26,8 +26,9 @@ import (
 )
 
 type defaultLang struct {
-	Name string `yaml:"name"`
-	Args string `yaml:"args,omitempty"`
+	Name    string   `yaml:"name"`
+	Args    string   `yaml:"args,omitempty"`
+	Imports []string `yaml:"imports,omitempty"`
 }
 
 var commitMsg = "AutoUpdateGeneratedProto"
@@ -127,6 +128,9 @@ func main() {
 
 			var command []string
 			command = append(command, "-I"+workspaceRoot+c.Root)
+			for _, imprt := range l.Imports {
+				command = append(command, "-I"+imprt)
+			}
 			command = append(command, "--"+l.Name+"_out="+l.Args+outDir)
 			command = append(command, protocFiles...)
 			cmd := exec.Command("protoc", command...)
