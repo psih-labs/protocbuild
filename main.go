@@ -132,7 +132,7 @@ func main() {
 			for _, imprt := range l.Imports {
 				command = append(command, "-I"+imprt)
 			}
-			command = append(command, "--"+l.Name+"_out="+l.Args+l.Extra+outDir)
+			command = append(command, "--"+l.Name+"_out="+l.Args+outDir+l.Extra)
 			command = append(command, protocFiles...)
 			cmd := exec.Command("protoc", command...)
 			outBytes, err := cmd.CombinedOutput()
